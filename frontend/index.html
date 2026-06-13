@@ -69,6 +69,45 @@
           </div>
         </div>
 
+        <div class="goal-section">
+          <div class="goal-header">
+            <h3>🎯 月度创作目标</h3>
+            <div class="goal-setting">
+              <span class="goal-label">本月目标：</span>
+              <input
+                v-model.number="goalInput"
+                type="number"
+                min="1"
+                max="100"
+                class="goal-input"
+                placeholder="设置数量"
+              >
+              <span class="goal-label">篇</span>
+              <button class="btn-goal" @click="saveGoal">设定</button>
+            </div>
+          </div>
+          <div v-if="monthlyStats.goalTarget > 0" class="goal-progress-area">
+            <div class="progress-info">
+              <span>{{ monthlyStats.count }} / {{ monthlyStats.goalTarget }}</span>
+              <span>{{ monthlyStats.progress }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                :class="{ achieved: monthlyStats.goalAchieved }"
+                :style="{ width: monthlyStats.progress + '%' }"
+              ></div>
+            </div>
+            <div class="progress-hint">
+              <span v-if="monthlyStats.goalAchieved">🎉 目标已达成！</span>
+              <span v-else>还差 {{ monthlyStats.goalTarget - monthlyStats.count }} 篇达成目标</span>
+            </div>
+          </div>
+          <div v-else class="goal-empty">
+            还没有设置本月目标，快来设定一个吧 ✨
+          </div>
+        </div>
+
         <div class="two-columns">
           <div class="card">
             <h2>✨ 随机灵感</h2>
@@ -129,6 +168,19 @@
           </div>
         </div>
       </main>
+    </div>
+
+    <div v-if="showCelebration" class="celebration-overlay" @click="closeCelebration">
+      <div class="celebration-content">
+        <div class="celebration-emoji">🎉🎊🎆</div>
+        <h2>恭喜达成月度目标！</h2>
+        <p>你已完成 {{ monthlyStats.goalTarget }} 篇梦境记录</p>
+        <p class="celebration-sub">继续保持，记录更多精彩梦境</p>
+        <button class="btn-primary" @click.stop="closeCelebration">太棒了！</button>
+      </div>
+      <div class="confetti-container">
+        <div v-for="i in 30" :key="i" class="confetti" :style="confettiStyle(i)"></div>
+      </div>
     </div>
   </div>
 

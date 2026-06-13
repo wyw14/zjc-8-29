@@ -12,6 +12,7 @@ const JWT_SECRET = 'dream-secret-key-2024';
 const DATA_DIR = path.join(__dirname, 'data');
 const DREAMS_FILE = path.join(DATA_DIR, 'dreams.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const GOALS_FILE = path.join(DATA_DIR, 'goals.json');
 
 app.use(cors());
 app.use(express.json());
@@ -186,12 +187,77 @@ app.get('/api/stats/monthly', authenticateToken, (req, res) => {
     ? (userDreams.reduce((sum, d) => sum + d.lucidity, 0) / count).toFixed(1)
     : 0;
 
+  const goals = readJSON(GOALS_FILE);
+  const goal = goals.find(g =>
+    g.userId === req.user.id &&
+    g.year === targetYear &&
+    g.month === targetMonth
+  );
+  const goalTarget = goal ? goal.target : 0;
+
+  const progress = goalTarget > 0 ? Math.min(Math.round((count / goalTarget) * 100), 100) : 0;
+
   res.json({
     year: targetYear,
     month: targetMonth,
     count,
-    avgLucidity: parseFloat(avgLucidity)
+    avgLucidity: parseFloat(avgLucidity),
+    goalTarget,
+    progress,
+    goalAchieved: goalTarget > 0 && count >= goalTarget
   });
+});
+
+app.get('/api/goal', authenticateToken, (req, res) => {
+  const { month, year } = req.query;
+  const now = new Date();
+  const targetYear = year ? parseInt(year) : now.getFullYear();
+  const targetMonth = month ? parseInt(month) : now.getMonth() + 1;
+
+  const goals = readJSON(GOALS_FILE);
+  const goal = goals.find(g =>
+    g.userId === req.user.id &&
+    g.year === targetYear &&
+    g.month === targetMonth
+  );
+
+  res.json({
+    year: targetYear,
+    month: targetMonth,
+    target: goal ? goal.target : 0
+  });
+});
+
+app.post('/api/goal', authenticateToken, (req, res) => {
+  const { target, year, month } = req.body;
+  if (!target || target < 1 || target > 100) {
+    return res.status(400).json({ error: '目标数量需在1-100之间' });
+  }
+
+  const now = new Date();
+  const targetYear = year ? parseInt(year) : now.getFullYear();
+  const targetMonth = month ? parseInt(month) : now.getMonth() + 1;
+
+  const goals = readJSON(GOALS_FILE);
+  const existIndex = goals.findIndex(g =>
+    g.userId === req.user.id &&
+    g.year === targetYear &&
+    g.month === targetMonth
+  );
+
+  if (existIndex >= 0) {
+    goals[existIndex].target = parseInt(target);
+  } else {
+    goals.push({
+      userId: req.user.id,
+      year: targetYear,
+      month: targetMonth,
+      target: parseInt(target)
+    });
+  }
+
+  writeJSON(GOALS_FILE, goals);
+  res.json({ year: targetYear, month: targetMonth, target: parseInt(target) });
 });
 
 app.listen(PORT, () => {

@@ -14,7 +14,11 @@ createApp({
 
     const dreams = ref([]);
     const randomDream = ref(null);
-    const monthlyStats = ref({ count: 0, avgLucidity: 0 });
+    const monthlyStats = ref({ count: 0, avgLucidity: 0, goalTarget: 0, progress: 0, goalAchieved: false });
+
+    const goalInput = ref(null);
+    const showCelebration = ref(false);
+    let prevGoalAchieved = false;
 
     const now = new Date();
     const selectedYear = ref(now.getFullYear());
@@ -154,7 +158,15 @@ createApp({
     async function fetchMonthlyStats() {
       try {
         const data = await apiRequest(`/stats/monthly?year=${selectedYear.value}&month=${selectedMonth.value}`);
+        const justAchieved = data.goalAchieved && !prevGoalAchieved && prevGoalAchieved !== undefined;
         monthlyStats.value = data;
+        if (data.goalTarget > 0) {
+          goalInput.value = data.goalTarget;
+        }
+        if (justAchieved) {
+          showCelebration.value = true;
+        }
+        prevGoalAchieved = data.goalAchieved;
       } catch (e) {
         console.error('获取月度统计失败', e);
       }
@@ -186,6 +198,48 @@ createApp({
       } catch (e) {
         alert(e.message);
       }
+    }
+
+    async function saveGoal() {
+      if (!goalInput.value || goalInput.value < 1 || goalInput.value > 100) {
+        alert('请输入1-100之间的目标数量');
+        return;
+      }
+      try {
+        await apiRequest('/goal', {
+          method: 'POST',
+          body: JSON.stringify({
+            target: goalInput.value,
+            year: selectedYear.value,
+            month: selectedMonth.value
+          })
+        });
+        fetchMonthlyStats();
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    function closeCelebration() {
+      showCelebration.value = false;
+    }
+
+    function confettiStyle(i) {
+      const colors = ['#a78bfa', '#f472b6', '#fbbf24', '#34d399', '#60a5fa', '#f87171', '#fb923c'];
+      const left = Math.random() * 100;
+      const delay = Math.random() * 3;
+      const duration = 2 + Math.random() * 3;
+      const size = 6 + Math.random() * 8;
+      const color = colors[i % colors.length];
+      return {
+        left: left + '%',
+        animationDelay: delay + 's',
+        animationDuration: duration + 's',
+        width: size + 'px',
+        height: size + 'px',
+        backgroundColor: color,
+        borderRadius: Math.random() > 0.5 ? '50%' : '2px'
+      };
     }
 
     function loadData() {
@@ -276,7 +330,12 @@ createApp({
       selectedYear,
       selectedMonth,
       yearOptions,
-      onMonthChange
+      onMonthChange,
+      goalInput,
+      showCelebration,
+      saveGoal,
+      closeCelebration,
+      confettiStyle
     };
   }
 }).mount('#app');
