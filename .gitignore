@@ -61,3 +61,32 @@ Thumbs.db
 *.avi
 *.mkv
 *.iso
+# Temporary files
+*.tmp
+*.temp
+tmp/
+**/tmp/
+temp/
+**/temp/
+
+# Package manager caches
+.pnpm-store/
+**/.pnpm-store/
+.yarn/cache/
+**/.yarn/cache/
+
+# Local database / dump artifacts
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+
+# Additional large binary artifacts
+*.dmg
+*.exe
+*.msi
+*.pkg
+*.deb
+*.rpm
+*.psd
+*.ai
