@@ -230,8 +230,9 @@ app.get('/api/goal', authenticateToken, (req, res) => {
 
 app.post('/api/goal', authenticateToken, (req, res) => {
   const { target, year, month } = req.body;
-  if (!target || target < 1 || target > 100) {
-    return res.status(400).json({ error: '目标数量需在1-100之间' });
+  const numTarget = Number(target);
+  if (!Number.isInteger(numTarget) || numTarget < 1 || numTarget > 100) {
+    return res.status(400).json({ error: '目标数量需为1-100之间的整数' });
   }
 
   const now = new Date();

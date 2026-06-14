@@ -79,8 +79,10 @@
                 type="number"
                 min="1"
                 max="100"
+                step="1"
                 class="goal-input"
                 placeholder="设置数量"
+                @keyup.enter="saveGoal"
               >
               <span class="goal-label">篇</span>
               <button class="btn-goal" @click="saveGoal">设定</button>

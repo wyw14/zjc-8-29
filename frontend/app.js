@@ -18,7 +18,9 @@ createApp({
 
     const goalInput = ref(null);
     const showCelebration = ref(false);
-    let prevGoalAchieved = false;
+    let prevStatsKey = '';
+    let pendingGoalCheck = false;
+    let prevGoalAchievedForCheck = false;
 
     const now = new Date();
     const selectedYear = ref(now.getFullYear());
@@ -158,21 +160,37 @@ createApp({
     async function fetchMonthlyStats() {
       try {
         const data = await apiRequest(`/stats/monthly?year=${selectedYear.value}&month=${selectedMonth.value}`);
-        const justAchieved = data.goalAchieved && !prevGoalAchieved && prevGoalAchieved !== undefined;
+        const currentKey = `${data.year}-${data.month}`;
+        const isMonthSwitched = prevStatsKey !== '' && prevStatsKey !== currentKey;
+
+        if (isMonthSwitched) {
+          pendingGoalCheck = false;
+          prevGoalAchievedForCheck = false;
+        }
+
         monthlyStats.value = data;
+
         if (data.goalTarget > 0) {
           goalInput.value = data.goalTarget;
+        } else {
+          goalInput.value = null;
         }
-        if (justAchieved) {
+
+        if (pendingGoalCheck && data.goalAchieved && !prevGoalAchievedForCheck) {
           showCelebration.value = true;
         }
-        prevGoalAchieved = data.goalAchieved;
+
+        pendingGoalCheck = false;
+        prevGoalAchievedForCheck = data.goalAchieved;
+        prevStatsKey = currentKey;
       } catch (e) {
         console.error('获取月度统计失败', e);
       }
     }
 
     function onMonthChange() {
+      prevGoalAchievedForCheck = false;
+      pendingGoalCheck = false;
       fetchMonthlyStats();
     }
 
@@ -183,6 +201,9 @@ createApp({
       }
 
       try {
+        prevGoalAchievedForCheck = monthlyStats.value.goalAchieved;
+        pendingGoalCheck = true;
+
         await apiRequest('/dreams', {
           method: 'POST',
           body: JSON.stringify(newDream.value)
@@ -196,24 +217,28 @@ createApp({
 
         loadData();
       } catch (e) {
+        pendingGoalCheck = false;
         alert(e.message);
       }
     }
 
     async function saveGoal() {
-      if (!goalInput.value || goalInput.value < 1 || goalInput.value > 100) {
-        alert('请输入1-100之间的目标数量');
+      const val = goalInput.value;
+      if (!Number.isInteger(val) || val < 1 || val > 100) {
+        alert('请输入1-100之间的整数目标数量');
         return;
       }
       try {
         await apiRequest('/goal', {
           method: 'POST',
           body: JSON.stringify({
-            target: goalInput.value,
+            target: val,
             year: selectedYear.value,
             month: selectedMonth.value
           })
         });
+        prevGoalAchievedForCheck = false;
+        pendingGoalCheck = false;
         fetchMonthlyStats();
       } catch (e) {
         alert(e.message);
